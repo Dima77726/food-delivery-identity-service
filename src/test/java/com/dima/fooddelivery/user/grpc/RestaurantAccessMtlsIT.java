@@ -55,7 +55,7 @@ class RestaurantAccessMtlsIT extends AbstractIntegrationTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"core", "catalog-service", "order-service"})
+    @ValueSource(strings = {"insights-service", "catalog-service", "order-service"})
     void shouldAnswerAllowedServices(String service) throws IOException {
         boolean manages = accessAs(service).checkRestaurantAccess(request()).getManages();
 
