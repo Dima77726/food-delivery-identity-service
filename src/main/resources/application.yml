@@ -1,0 +1,83 @@
+spring:
+  application:
+    name: identity-service
+
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+
+  datasource:
+    # Своя база пользователей (database-per-service). Пароли — BCrypt-хеши — живут только здесь.
+    url: jdbc:postgresql://${IDENTITY_DB_HOST:localhost}:${IDENTITY_DB_PORT:5432}/${IDENTITY_DB_NAME:identity}
+    username: ${IDENTITY_DB_USER}
+    password: ${IDENTITY_DB_PASSWORD}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+      minimum-idle: ${DB_POOL_SIZE:10}
+      connection-timeout: 3000
+      leak-detection-threshold: 20000
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      # Схемой владеет Liquibase; validate только сверяет.
+      ddl-auto: validate
+    open-in-view: false
+
+  liquibase:
+    change-log: classpath:/db/changelog/changelog.yml
+
+  grpc:
+    server:
+      # Права на рестораны для каталога и монолита. По умолчанию — для запуска из IDE,
+      # в docker-compose переопределяется на 9090.
+      port: ${GRPC_PORT:7085}
+
+app:
+  security:
+    # Первый администратор. Пустые значения — учётка не создаётся вовсе.
+    bootstrap-admin:
+      email: ${APP_ADMIN_EMAIL:}
+      password: ${APP_ADMIN_PASSWORD:}
+    jwt:
+      issuer: ${JWT_ISSUER:food-delivery-platform}
+      access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:PT1H}
+      # Закрытый ключ подписи: PKCS#8 DER в Base64 одной строкой. Значения по умолчанию нет —
+      # ключ не должен лежать в репозитории даже «для разработки». Как сгенерировать — в README.
+      private-key: ${JWT_PRIVATE_KEY:}
+      key-id: ${JWT_KEY_ID:}
+
+management:
+  server:
+    port: ${MANAGEMENT_PORT:9085}
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+server:
+  port: ${SERVER_PORT:8085}
+  shutdown: graceful
+
+logging:
+  pattern:
+    correlation: "[${spring.application.name:},%X{correlationId:-},%X{userId:-}] "
+  level:
+    root: INFO
+    com.dima.fooddelivery: DEBUG
