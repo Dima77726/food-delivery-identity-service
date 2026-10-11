@@ -10,6 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
  * {@link Transactional} — откат после каждого теста.
  */
 @SpringBootTest(properties = {
+        // Журнал аудита тесты отправляют сами: с таймером момент отправки был бы гонкой.
+        "app.audit.publish-enabled=false",
         "logging.level.liquibase=WARN",
         "logging.level.org.testcontainers=WARN",
         "logging.level.com.zaxxer.hikari=WARN"

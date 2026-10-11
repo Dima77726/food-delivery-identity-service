@@ -5,3 +5,6 @@ databaseChangeLog:
   - include:
       file: migrations/002-create-refresh-token.yml
       relativeToChangelogFile: true
+  - include:
+      file: migrations/003-audit-log-publication.yml
+      relativeToChangelogFile: true
