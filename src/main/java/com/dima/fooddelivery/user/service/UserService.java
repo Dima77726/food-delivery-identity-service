@@ -29,6 +29,7 @@ public class UserService {
 
     private final AppUserRepository appUserRepository;
     private final PasswordEncoder passwordEncoder;
+    private final RefreshTokenService refreshTokenService;
 
     /**
      * Создаёт пользователя с одной ролью.
@@ -111,6 +112,12 @@ public class UserService {
 
         user.setEnabled(enabled);
         appUserRepository.flush();
+
+        // Блокировка должна выкинуть пользователя из всех сессий, а не только запретить новый
+        // вход. Уже выданный access-токен доживёт свои минуты — отозвать его нельзя.
+        if (!enabled) {
+            refreshTokenService.revokeAll(userId);
+        }
 
         log.info("Изменён доступ пользователя: userId={}, enabled={}", userId, enabled);
 

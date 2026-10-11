@@ -21,6 +21,6 @@ app:
   grpc:
     security:
       mtls: true
-      # Права на рестораны спрашивают каталог (управление рестораном и меню)
-      # и монолит (заказы ресторана, доставка, аналитика).
-      allowed-clients: core,catalog-service
+      # Права на рестораны спрашивают каталог (управление рестораном и меню), сервис заказов
+      # (заказы ресторана, доставка) и insights-service (аналитика ресторана).
+      allowed-clients: insights-service,catalog-service,order-service

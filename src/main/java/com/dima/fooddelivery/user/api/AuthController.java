@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/auth")
-@Tag(name = "Auth", description = "Регистрация, вход и текущий пользователь")
+@Tag(name = "Auth", description = "Регистрация, вход, обмен токенов, выход и текущий пользователь")
 public class AuthController {
 
     private final AuthService authService;
@@ -42,6 +42,23 @@ public class AuthController {
         log.info("Запрос на вход: email={}", request.email());
 
         return authService.login(request);
+    }
+
+    /**
+     * Новая пара токенов в обмен на refresh-токен. Старый refresh-токен после этого
+     * недействителен; его повторное предъявление отзывает всю сессию.
+     */
+    @PostMapping("/refresh")
+    @Operation(summary = "Обменять refresh-токен на новую пару токенов")
+    public AuthTokenResponse refresh(@Valid @RequestBody RefreshTokenRequest request) {
+        return authService.refresh(request);
+    }
+
+    @PostMapping("/logout")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Выйти: отозвать refresh-токен этой сессии")
+    public void logout(@Valid @RequestBody RefreshTokenRequest request) {
+        authService.logout(request);
     }
 
     /**

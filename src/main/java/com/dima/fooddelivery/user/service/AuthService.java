@@ -1,8 +1,10 @@
 package com.dima.fooddelivery.user.service;
 
+import com.dima.fooddelivery.common.exception.InvalidRefreshTokenException;
 import com.dima.fooddelivery.common.security.JwtIssuer;
 import com.dima.fooddelivery.user.api.AuthTokenResponse;
 import com.dima.fooddelivery.user.api.LoginRequest;
+import com.dima.fooddelivery.user.api.RefreshTokenRequest;
 import com.dima.fooddelivery.user.api.RegisterUserRequest;
 import com.dima.fooddelivery.user.api.UserResponseMapper;
 import com.dima.fooddelivery.user.domain.AppUser;
@@ -16,7 +18,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Регистрация и вход.
+ * Регистрация, вход, обмен refresh-токена и выход.
+ *
+ * <p>Вход выдаёт пару: короткий access-токен (JWT, проверяется любым сервисом без похода сюда)
+ * и долгий refresh-токен (проверяется только здесь, по базе). Первый нельзя отозвать, зато он
+ * живёт минуты; второй живёт неделями, зато отзывается мгновенно.
  */
 @Slf4j
 @Service
@@ -35,6 +41,7 @@ public class AuthService {
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final JwtIssuer jwtIssuer;
+    private final RefreshTokenService refreshTokenService;
 
     @Transactional
     public AuthTokenResponse register(RegisterUserRequest request) {
@@ -50,7 +57,7 @@ public class AuthService {
         return issueToken(user);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AuthTokenResponse login(LoginRequest request) {
         AppUser user = appUserRepository.findByEmail(request.email()).orElse(null);
 
@@ -76,13 +83,39 @@ public class AuthService {
         return issueToken(user);
     }
 
+    /**
+     * Обмен refresh-токена на новую пару. Без транзакции здесь: она открывается внутри
+     * {@link RefreshTokenService#rotate}, и исключение ниже бросается уже после её фиксации —
+     * отзыв цепочки при повторном предъявлении не откатывается.
+     */
+    public AuthTokenResponse refresh(RefreshTokenRequest request) {
+        return switch (refreshTokenService.rotate(request.refreshToken())) {
+            case RefreshTokenService.Rotation.Rotated rotated ->
+                    toResponse(rotated.user(), rotated.refreshToken());
+            case RefreshTokenService.Rotation.Disabled disabled ->
+                    throw new DisabledException("Учётная запись заблокирована");
+            case RefreshTokenService.Rotation.Invalid invalid ->
+                    throw new InvalidRefreshTokenException();
+        };
+    }
+
+    public void logout(RefreshTokenRequest request) {
+        refreshTokenService.revoke(request.refreshToken());
+    }
+
     private AuthTokenResponse issueToken(AppUser user) {
+        return toResponse(user, refreshTokenService.issue(user.getId()));
+    }
+
+    private AuthTokenResponse toResponse(AppUser user, RefreshTokenService.IssuedRefreshToken refreshToken) {
         JwtIssuer.IssuedToken issued = jwtIssuer.issue(user);
 
         return new AuthTokenResponse(
                 issued.token(),
                 "Bearer",
                 issued.expiresInSeconds(),
+                refreshToken.token(),
+                refreshToken.expiresInSeconds(),
                 UserResponseMapper.toResponse(user)
         );
     }

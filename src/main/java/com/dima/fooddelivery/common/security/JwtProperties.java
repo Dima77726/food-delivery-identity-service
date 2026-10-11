@@ -8,7 +8,10 @@ import java.time.Duration;
  * Настройки выпуска JWT.
  *
  * @param issuer         издатель — его сверяют все проверяющие сервисы
- * @param accessTokenTtl срок жизни access-токена
+ * @param accessTokenTtl  срок жизни access-токена
+ * @param refreshTokenTtl срок жизни refresh-токена. Отсчитывается заново при каждом обмене:
+ *                        пользователь, который заходит хотя бы раз в этот срок, не вводит
+ *                        пароль никогда
  * @param privateKey     закрытый RSA-ключ: PKCS#8 в DER, закодированный в Base64 одной строкой.
  *                       Одна строка, а не PEM, потому что многострочное значение в .env
  *                       и переменных окружения — источник тихих поломок при копировании
@@ -20,6 +23,7 @@ import java.time.Duration;
 public record JwtProperties(
         String issuer,
         Duration accessTokenTtl,
+        Duration refreshTokenTtl,
         String privateKey,
         String keyId
 ) {

@@ -1,6 +1,7 @@
 package com.dima.fooddelivery.user.api;
 
 import com.dima.fooddelivery.support.AbstractIntegrationTest;
+import com.dima.fooddelivery.user.service.UserService;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,9 +10,11 @@ import jakarta.persistence.EntityManager;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -35,6 +38,9 @@ class AuthApiIT extends AbstractIntegrationTest {
 
     @Autowired
     private EntityManager entityManager;
+
+    @Autowired
+    private UserService userService;
 
     @Test
     void shouldRegisterAndReturnToken() throws Exception {
@@ -120,6 +126,123 @@ class AuthApiIT extends AbstractIntegrationTest {
                                 {"email": "%s", "password": "password123"}
                                 """.formatted(email)))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldIssueRefreshTokenOnRegistration() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(registrationJson(uniqueEmail(), "CUSTOMER")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.refreshToken").isNotEmpty())
+                .andExpect(jsonPath("$.refreshExpiresInSeconds").isNumber());
+    }
+
+    /** Обмен даёт новую пару, и новый access-токен рабочий. */
+    @Test
+    void shouldExchangeRefreshTokenForNewPair() throws Exception {
+        String email = uniqueEmail();
+        String refreshToken = JsonPath.read(register(email), "$.refreshToken");
+
+        String body = refresh(refreshToken)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.user.email").value(email))
+                .andReturn().getResponse().getContentAsString();
+
+        String newRefreshToken = JsonPath.read(body, "$.refreshToken");
+        String newAccessToken = JsonPath.read(body, "$.accessToken");
+
+        assertThat(newRefreshToken).isNotEqualTo(refreshToken);
+
+        mockMvc.perform(get("/api/v1/auth/me")
+                        .header("Authorization", "Bearer " + newAccessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value(email));
+    }
+
+    /**
+     * Повторное предъявление уже обменянного токена — признак кражи: отклоняется он сам
+     * и вся цепочка, включая токен, выданный при первом обмене.
+     */
+    @Test
+    void shouldRevokeWholeSessionWhenRefreshTokenIsReused() throws Exception {
+        String refreshToken = JsonPath.read(register(uniqueEmail()), "$.refreshToken");
+
+        String body = refresh(refreshToken)
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String rotatedToken = JsonPath.read(body, "$.refreshToken");
+
+        refresh(refreshToken).andExpect(status().isUnauthorized());
+        refresh(rotatedToken).andExpect(status().isUnauthorized());
+    }
+
+    /** Выход завершает только свою сессию: вход с другого устройства остаётся живым. */
+    @Test
+    void shouldRevokeOnlyCurrentSessionOnLogout() throws Exception {
+        String email = uniqueEmail();
+        String firstDevice = JsonPath.read(register(email), "$.refreshToken");
+        String secondDevice = JsonPath.read(login(email), "$.refreshToken");
+
+        mockMvc.perform(post("/api/v1/auth/logout")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(refreshJson(firstDevice)))
+                .andExpect(status().isNoContent());
+
+        refresh(firstDevice).andExpect(status().isUnauthorized());
+        refresh(secondDevice).andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldRejectUnknownRefreshToken() throws Exception {
+        refresh("not-a-real-token").andExpect(status().isUnauthorized());
+    }
+
+    /** Блокировка администратором отзывает все сессии пользователя. */
+    @Test
+    void shouldRevokeSessionsOfDisabledUser() throws Exception {
+        String email = uniqueEmail();
+        String body = register(email);
+        String refreshToken = JsonPath.read(body, "$.refreshToken");
+        long userId = ((Number) JsonPath.read(body, "$.user.id")).longValue();
+
+        userService.setEnabled(userId, false);
+
+        refresh(refreshToken).andExpect(status().isUnauthorized());
+    }
+
+    private String register(String email) throws Exception {
+        return mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(registrationJson(email, "CUSTOMER")))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+    }
+
+    private String login(String email) throws Exception {
+        return mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email": "%s", "password": "password123"}
+                                """.formatted(email)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+    }
+
+    private ResultActions refresh(String refreshToken) throws Exception {
+        return mockMvc.perform(post("/api/v1/auth/refresh")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(refreshJson(refreshToken)));
+    }
+
+    private String refreshJson(String refreshToken) {
+        return """
+                {"refreshToken": "%s"}
+                """.formatted(refreshToken);
     }
 
     private String registerAndGetToken(String email) throws Exception {

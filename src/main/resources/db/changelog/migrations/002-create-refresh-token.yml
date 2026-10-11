@@ -1,0 +1,9 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-create-refresh-token
+      author: dima
+      changes:
+        - sqlFile:
+            path: sql/002-create-refresh-token.sql
+            relativeToChangelogFile: true
+            splitStatements: true

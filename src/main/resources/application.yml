@@ -26,6 +26,18 @@ spring:
   liquibase:
     change-log: classpath:/db/changelog/changelog.yml
 
+  kafka:
+    # Только продюсер: журнал аудита для insights-service. По умолчанию — внешний листенер
+    # брокера для запуска из IDE, в compose — kafka:9092.
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9094}
+    producer:
+      # Записи журнала терять нельзя: подтверждение от всех реплик и идемпотентный продюсер,
+      # как у остальных сервисов.
+      acks: all
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+
   grpc:
     server:
       # Права на рестораны для каталога и монолита. По умолчанию — для запуска из IDE,
@@ -40,11 +52,24 @@ app:
       password: ${APP_ADMIN_PASSWORD:}
     jwt:
       issuer: ${JWT_ISSUER:food-delivery-platform}
-      access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:PT1H}
+      # Access-токен короткий: отозвать его до истечения нельзя, он проверяется без похода
+      # в базу. Долгую сессию держит refresh-токен — его отзыв срабатывает сразу.
+      access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:PT15M}
+      refresh-token-ttl: ${JWT_REFRESH_TOKEN_TTL:P30D}
       # Закрытый ключ подписи: PKCS#8 DER в Base64 одной строкой. Значения по умолчанию нет —
       # ключ не должен лежать в репозитории даже «для разработки». Как сгенерировать — в README.
       private-key: ${JWT_PRIVATE_KEY:}
       key-id: ${JWT_KEY_ID:}
+
+  audit:
+    # Отправка журнала административных действий в сводный журнал insights-service.
+    publish-interval: ${AUDIT_PUBLISH_INTERVAL:PT5S}
+    publish-enabled: ${AUDIT_PUBLISH_ENABLED:true}
+
+  auth:
+    # Чистка истёкших refresh-токенов. Несколько экземпляров могут чистить одновременно:
+    # DELETE по сроку идемпотентен.
+    refresh-token-cleanup-interval: ${REFRESH_TOKEN_CLEANUP_INTERVAL:PT1H}
 
 management:
   server:
