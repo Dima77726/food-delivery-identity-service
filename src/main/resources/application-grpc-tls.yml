@@ -1,0 +1,26 @@
+# Профиль grpc-tls: взаимный TLS на gRPC-сервере сервиса пользователей. Включается
+# в docker-compose; при запуске из IDE выключен, см. GrpcSecurityConfig.
+spring:
+  ssl:
+    bundle:
+      pem:
+        grpc:
+          keystore:
+            certificate: ${GRPC_TLS_CERTIFICATE}
+            private-key: ${GRPC_TLS_PRIVATE_KEY}
+          truststore:
+            certificate: ${GRPC_TLS_CA}
+  grpc:
+    server:
+      ssl:
+        enabled: true
+        bundle: grpc
+        client-auth: require
+
+app:
+  grpc:
+    security:
+      mtls: true
+      # Права на рестораны спрашивают каталог (управление рестораном и меню)
+      # и монолит (заказы ресторана, доставка, аналитика).
+      allowed-clients: core,catalog-service
