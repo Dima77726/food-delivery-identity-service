@@ -45,6 +45,10 @@ public class SecurityConfig {
             // Регистрация и вход обязаны быть открыты, иначе войти невозможно.
             "/api/v1/auth/register",
             "/api/v1/auth/login",
+            // Обмен и выход приходят как раз тогда, когда access-токен уже истёк: доступ к ним
+            // даёт сам refresh-токен в теле запроса.
+            "/api/v1/auth/refresh",
+            "/api/v1/auth/logout",
             // Открытые ключи — их смысл в том, чтобы быть доступными.
             "/.well-known/jwks.json",
             "/v3/api-docs/**",

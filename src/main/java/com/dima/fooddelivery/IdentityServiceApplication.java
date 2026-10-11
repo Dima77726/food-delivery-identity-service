@@ -2,6 +2,7 @@ package com.dima.fooddelivery;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * Сервис пользователей: регистрация, вход, роли, права на рестораны и выпуск токенов.
@@ -10,6 +11,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * из монолита со своими пакетами, и сканирование от корня находит его без правок.
  */
 @SpringBootApplication
+@EnableScheduling
 public class IdentityServiceApplication {
 
     public static void main(String[] args) {
