@@ -1,0 +1,9 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-identity
+      author: dima
+      changes:
+        - sqlFile:
+            path: sql/001-create-identity.sql
+            relativeToChangelogFile: true
+            splitStatements: true
