@@ -4,14 +4,27 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.dima</groupId>
-        <artifactId>food-delivery-platform</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.0.5</version>
+        <relativePath/>
     </parent>
 
+    <groupId>com.dima</groupId>
+    <version>0.0.1-SNAPSHOT</version>
     <artifactId>identity-service</artifactId>
     <name>identity-service</name>
     <description>Пользователи, вход и выпуск токенов</description>
+
+    <properties>
+        <java.version>21</java.version>
+        <!-- Ветка 3.x springdoc — единственная, совместимая со Spring Boot 4 / Framework 7. -->
+        <springdoc.version>3.1.0</springdoc.version>
+        <!-- Версия контрактов своя, отдельно от версии сервиса: см. food-delivery-contracts. -->
+        <contracts.version>1.0.0</contracts.version>
+        <spring-grpc.version>1.0.3</spring-grpc.version>
+        <protobuf-java.version>4.33.4</protobuf-java.version>
+    </properties>
 
     <!--
         Третий вынесенный сервис — владелец пользователей. Единственный, кто выпускает токены:
@@ -25,6 +38,44 @@
         insights-service. Вход от брокера не зависит и при этом: журнал копится в своей
         таблице и уходит, когда брокер вернётся.
     -->
+
+    <!--
+        Контракты платформы — в GitHub Packages репозитория food-delivery-contracts. Читать оттуда
+        нужен токен даже для публичных пакетов: см. README контрактов (settings.xml с сервером github).
+    -->
+    <repositories>
+        <repository>
+            <id>github</id>
+            <url>https://maven.pkg.github.com/Dima77726/food-delivery-contracts</url>
+        </repository>
+    </repositories>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.dima</groupId>
+                <artifactId>event-contracts</artifactId>
+                <version>${contracts.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dima</groupId>
+                <artifactId>grpc-contracts</artifactId>
+                <version>${contracts.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${protobuf-java.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.grpc</groupId>
+                <artifactId>spring-grpc-dependencies</artifactId>
+                <version>${spring-grpc.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <dependency>
