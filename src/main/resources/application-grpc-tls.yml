@@ -23,4 +23,4 @@ app:
       mtls: true
       # Права на рестораны спрашивают каталог (управление рестораном и меню), сервис заказов
       # (заказы ресторана, доставка) и insights-service (аналитика ресторана).
-      allowed-clients: insights-service,catalog-service,order-service
+      allowed-clients: insights-service,catalog-service,order-service,notification-service

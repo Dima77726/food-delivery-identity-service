@@ -21,7 +21,7 @@
         <!-- Ветка 3.x springdoc — единственная, совместимая со Spring Boot 4 / Framework 7. -->
         <springdoc.version>3.1.0</springdoc.version>
         <!-- Версия контрактов своя, отдельно от версии сервиса: см. food-delivery-contracts. -->
-        <contracts.version>1.0.0</contracts.version>
+        <contracts.version>1.1.0</contracts.version>
         <spring-grpc.version>1.0.3</spring-grpc.version>
         <protobuf-java.version>4.33.4</protobuf-java.version>
     </properties>
