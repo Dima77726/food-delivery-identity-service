@@ -74,7 +74,7 @@ class UserDirectoryGrpcServiceIT extends AbstractIntegrationTest {
     @Test
     void shouldReportDisabledUser() {
         Long userId = testData.insertUser("blocked", UserRole.CUSTOMER);
-        jdbcTemplate.update("UPDATE app_user SET enabled = FALSE WHERE id = ?", userId);
+        jdbcTemplate.update("UPDATE app_user SET is_enabled = FALSE WHERE id = ?", userId);
 
         assertFalse(directory.getUserContact(request(userId)).getEnabled());
     }
