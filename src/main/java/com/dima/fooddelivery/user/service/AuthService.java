@@ -103,6 +103,15 @@ public class AuthService {
         refreshTokenService.revoke(request.refreshToken());
     }
 
+    /**
+     * Пара токенов для пользователя, которого уже опознали другим способом (вход через внешнего провайдера).
+     * Проверки пароля здесь нет, поэтому вызывать только после проверки удостоверения.
+     */
+    @Transactional
+    public AuthTokenResponse issueFor(AppUser user) {
+        return issueToken(user);
+    }
+
     private AuthTokenResponse issueToken(AppUser user) {
         return toResponse(user, refreshTokenService.issue(user.getId()));
     }
