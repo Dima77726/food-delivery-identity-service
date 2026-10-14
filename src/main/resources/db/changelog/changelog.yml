@@ -8,3 +8,6 @@ databaseChangeLog:
   - include:
       file: migrations/003-audit-log-publication.yml
       relativeToChangelogFile: true
+  - include:
+      file: migrations/004-external-identity.yml
+      relativeToChangelogFile: true

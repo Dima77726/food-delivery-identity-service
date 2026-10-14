@@ -1,0 +1,9 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004-external-identity
+      author: dima
+      changes:
+        - sqlFile:
+            path: sql/004-external-identity.sql
+            relativeToChangelogFile: true
+            splitStatements: true
