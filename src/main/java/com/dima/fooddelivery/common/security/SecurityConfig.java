@@ -50,6 +50,8 @@ public class SecurityConfig {
             // Обмен и выход приходят как раз тогда, когда access-токен уже истёк: доступ к ним
             // даёт сам refresh-токен в теле запроса.
             "/api/v1/auth/refresh",
+            // Обмен ключа API на токен: доступ даёт сам ключ в заголовке X-Api-Key.
+            "/api/v1/auth/api-keys/token",
             "/api/v1/auth/logout",
             // Открытые ключи — их смысл в том, чтобы быть доступными.
             "/.well-known/jwks.json",

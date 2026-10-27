@@ -35,11 +35,25 @@ public class JwtIssuer {
 
     public static final String ROLES_CLAIM = "roles";
     public static final String EMAIL_CLAIM = "email";
+    public static final String API_KEY_CLAIM = "api_key_id";
 
     private final JwtEncoder jwtEncoder;
     private final JwtProperties jwtProperties;
 
     public IssuedToken issue(AppUser user) {
+        return issue(user, null);
+    }
+
+    /**
+     * Токен по ключу API партнёра: тот же владелец и те же роли, плюс claim {@value #API_KEY_CLAIM}.
+     * Сервисы проверяют его как обычный — менять их не нужно, — а журналы и трассы видят, что
+     * действие выполнила интеграция, а не человек в браузере.
+     */
+    public IssuedToken issueForApiKey(AppUser user, long apiKeyId) {
+        return issue(user, apiKeyId);
+    }
+
+    private IssuedToken issue(AppUser user, Long apiKeyId) {
         Instant issuedAt = Instant.now();
         Instant expiresAt = issuedAt.plus(jwtProperties.accessTokenTtl());
 
@@ -52,6 +66,11 @@ public class JwtIssuer {
                 .subject(String.valueOf(user.getId()))
                 .claim(ROLES_CLAIM, roles)
                 .claim(EMAIL_CLAIM, user.getEmail())
+                .claims(c -> {
+                    if (apiKeyId != null) {
+                        c.put(API_KEY_CLAIM, apiKeyId);
+                    }
+                })
                 .build();
 
         JwsHeader header = JwsHeader.with(SignatureAlgorithm.RS256)

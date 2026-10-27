@@ -1,0 +1,9 @@
+databaseChangeLog:
+  - changeSet:
+      id: 005-partner-api-key
+      author: dima
+      changes:
+        - sqlFile:
+            path: sql/005-partner-api-key.sql
+            relativeToChangelogFile: true
+            splitStatements: true
