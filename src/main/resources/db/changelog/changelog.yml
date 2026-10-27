@@ -11,3 +11,6 @@ databaseChangeLog:
   - include:
       file: migrations/004-external-identity.yml
       relativeToChangelogFile: true
+  - include:
+      file: migrations/005-partner-api-key.yml
+      relativeToChangelogFile: true
